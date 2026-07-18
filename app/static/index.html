@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>simcbots</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main>
+    <h1>simcbots</h1>
+    <p class="subtitle">Paste a SimulationCraft profile / APL and run it against your local simc install.</p>
+
+    <form id="sim-form">
+      <textarea
+        id="profile"
+        placeholder="Paste your simc profile here (e.g. an exported character + APL)"
+        spellcheck="false"
+        required
+      ></textarea>
+
+      <div class="options">
+        <label>
+          Iterations
+          <input type="number" id="iterations" value="10000" min="100" step="100" />
+        </label>
+        <label>
+          Fight style
+          <select id="fight_style">
+            <option value="Patchwerk">Patchwerk</option>
+            <option value="HecticAddCleave">HecticAddCleave</option>
+            <option value="HelterSkelter">HelterSkelter</option>
+            <option value="CastingPatchwerk">CastingPatchwerk</option>
+            <option value="LightMovement">LightMovement</option>
+            <option value="HeavyMovement">HeavyMovement</option>
+          </select>
+        </label>
+      </div>
+
+      <button type="submit" id="submit-btn">Run simulation</button>
+    </form>
+
+    <section id="status" hidden>
+      <p id="status-text"></p>
+      <a id="report-link" hidden target="_blank" rel="noopener">Open report</a>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
