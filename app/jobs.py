@@ -10,6 +10,7 @@ class JobStatus(enum.StrEnum):
     RUNNING = "running"
     DONE = "done"
     ERROR = "error"
+    CANCELLED = "cancelled"
 
 
 @dataclass
@@ -18,6 +19,10 @@ class Job:
     dir: Path
     status: JobStatus = JobStatus.QUEUED
     error: str | None = None
+    kind: str = "quick"  # "quick" | "topgear" — selects the report page renderer
+    # Live subprocess handle while RUNNING; lets the cancel endpoint terminate it.
+    process: asyncio.subprocess.Process | None = None
+    started_at: float | None = None
 
 
 class JobStore:
@@ -29,9 +34,9 @@ class JobStore:
         self._jobs: dict[str, Job] = {}
         self._lock = asyncio.Lock()
 
-    async def create(self) -> Job:
+    async def create(self, kind: str = "quick") -> Job:
         job_id = uuid.uuid4().hex
-        job = Job(id=job_id, dir=self._jobs_root / job_id)
+        job = Job(id=job_id, dir=self._jobs_root / job_id, kind=kind)
         async with self._lock:
             self._jobs[job_id] = job
         return job

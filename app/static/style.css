@@ -46,6 +46,80 @@ textarea {
   font-size: 0.9rem;
 }
 
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.tab {
+  padding: 0.4rem 1rem;
+  border: 1px solid #8884;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.tab.active {
+  border-color: #f2a900;
+  color: #f2a900;
+  font-weight: 600;
+}
+
+.mode-hint {
+  font-size: 0.9rem;
+  opacity: 0.75;
+  margin-top: 0;
+}
+
+#candidates {
+  margin: 0.75rem 0;
+  border: 1px solid #8884;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+}
+
+.candidates-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.candidate {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  padding: 0.15rem 0;
+}
+
+.source-tag {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  padding: 0.05rem 0.4rem;
+  border-radius: 3px;
+  background: #8883;
+}
+
+.source-tag.vault {
+  background: #6a5acd44;
+}
+
+.toggles {
+  align-items: center;
+}
+
+.toggle {
+  flex-direction: row !important;
+  align-items: center;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
 button {
   padding: 0.5rem 1.25rem;
   font-size: 1rem;
@@ -55,6 +129,10 @@ button {
 button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+#cancel-btn {
+  color: #b33;
 }
 
 #status {

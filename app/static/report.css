@@ -131,6 +131,53 @@ body.report {
   background: linear-gradient(90deg, #3d8bd4, #6cc0ff);
 }
 
+.bar-fill.gain {
+  background: linear-gradient(90deg, #2e9e4f, #5fd382);
+}
+
+.bar-fill.loss {
+  background: linear-gradient(90deg, #b03636, #e06060);
+}
+
+.bar-fill.baseline {
+  background: #7a7a7a;
+}
+
+.baseline-row td {
+  color: #9a9a9a;
+  font-style: italic;
+}
+
+.gain-text {
+  color: #5fd382 !important;
+}
+
+.loss-text {
+  color: #e06060 !important;
+}
+
+.tag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: #2a2b30;
+  color: #9a9a9a;
+}
+
+.tag.vault {
+  background: #3d3466;
+  color: #b7a8f0;
+}
+
+.tag.bags {
+  background: #34513a;
+  color: #9fd8ab;
+}
+
 .full-report-link {
   display: inline-block;
   margin-top: 0.5rem;

@@ -8,20 +8,38 @@
 <body>
   <main>
     <h1>simcbots</h1>
-    <p class="subtitle">Paste a SimulationCraft profile / APL and run it against your local simc install.</p>
+    <p class="subtitle">Run SimulationCraft against your own local simc install.</p>
+
+    <nav class="tabs">
+      <button type="button" class="tab active" id="tab-quick">Quick Sim</button>
+      <button type="button" class="tab" id="tab-topgear">Top Gear</button>
+    </nav>
 
     <form id="sim-form">
+      <p class="mode-hint" id="hint-quick">
+        Paste a SimulationCraft profile / APL and sim your current setup.
+      </p>
+      <p class="mode-hint" id="hint-topgear" hidden>
+        Paste a full <code>/simc</code> addon export &mdash; gear from your bags and this week's
+        vault choices will be compared against what you're wearing in one combined run.
+      </p>
+
       <textarea
         id="profile"
-        placeholder="Paste your simc profile here (e.g. an exported character + APL)"
+        placeholder="Paste your /simc export here"
         spellcheck="false"
         required
       ></textarea>
 
+      <section id="candidates" hidden>
+        <p class="candidates-title">Items to compare:</p>
+        <div id="candidate-list"></div>
+      </section>
+
       <div class="options">
         <label>
           Iterations
-          <input type="number" id="iterations" value="10000" min="100" step="100" />
+          <input type="number" id="iterations" value="10000" min="100" max="100000" step="100" />
         </label>
         <label>
           Fight style
@@ -34,9 +52,35 @@
             <option value="HeavyMovement">HeavyMovement</option>
           </select>
         </label>
+        <label>
+          Targets
+          <input type="number" id="desired_targets" value="1" min="1" max="20" />
+        </label>
+        <label>
+          Fight length (s)
+          <input type="number" id="max_time" value="300" min="10" max="1800" step="10" />
+        </label>
       </div>
 
-      <button type="submit" id="submit-btn">Run simulation</button>
+      <div class="options toggles">
+        <label class="toggle">
+          <input type="checkbox" id="bloodlust" checked />
+          Bloodlust
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="raid_buffs" checked />
+          Raid buffs
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="consumables" checked />
+          Consumables
+        </label>
+      </div>
+
+      <div class="actions">
+        <button type="submit" id="submit-btn">Run simulation</button>
+        <button type="button" id="cancel-btn" hidden>Cancel</button>
+      </div>
     </form>
 
     <section id="status" hidden>

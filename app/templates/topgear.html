@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Top Gear - {{ summary.player_name }} - simcbots</title>
+  <link rel="stylesheet" href="/report.css" />
+</head>
+<body class="report">
+  <main>
+    <a class="back-link" href="/">&laquo; Back to simcbots</a>
+
+    <div class="header">
+      <div class="dps-value">{{ "{:,.0f}".format(summary.baseline_dps) }}</div>
+      <div class="dps-label">DPS equipped</div>
+    </div>
+    <p class="subtitle">{{ summary.player_name }} &mdash; Top Gear: {{ summary.rows|length }} item(s) compared</p>
+
+    <div class="panel">
+      <div class="panel-title">Ranked by DPS</div>
+      <table class="bar-table">
+        {% for row in summary.rows %}
+        {% if loop.first or (row.delta < 0 and loop.previtem.delta >= 0) %}
+        {% if row.delta < 0 %}
+        <tr class="baseline-row">
+          <td class="name-cell">Currently equipped</td>
+          <td class="bar-cell">
+            <div class="bar-track">
+              <div class="bar-fill baseline" style="width: {{ summary.baseline_bar_pct }}%"></div>
+            </div>
+          </td>
+          <td class="num-cell">&mdash;</td>
+          <td class="num-cell">{{ "{:,.0f}".format(summary.baseline_dps) }}</td>
+        </tr>
+        {% endif %}
+        {% endif %}
+        <tr>
+          <td class="name-cell">
+            {{ row.name }}{% if row.ilevel %} ({{ row.ilevel }}){% endif %}
+            <span class="tag {{ row.source }}">{{ row.source }}</span>
+            <span class="tag slot">{{ row.slot }}</span>
+          </td>
+          <td class="bar-cell">
+            <div class="bar-track">
+              <div class="bar-fill {{ 'gain' if row.delta >= 0 else 'loss' }}"
+                   style="width: {{ row.bar_pct }}%"></div>
+            </div>
+          </td>
+          <td class="num-cell {{ 'gain-text' if row.delta >= 0 else 'loss-text' }}">
+            {{ "%+.2f"|format(row.delta_pct) }}%
+          </td>
+          <td class="num-cell">{{ "{:,.0f}".format(row.dps) }}</td>
+        </tr>
+        {% if loop.last and row.delta >= 0 %}
+        <tr class="baseline-row">
+          <td class="name-cell">Currently equipped</td>
+          <td class="bar-cell">
+            <div class="bar-track">
+              <div class="bar-fill baseline" style="width: {{ summary.baseline_bar_pct }}%"></div>
+            </div>
+          </td>
+          <td class="num-cell">&mdash;</td>
+          <td class="num-cell">{{ "{:,.0f}".format(summary.baseline_dps) }}</td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </table>
+    </div>
+
+    <a class="full-report-link" href="{{ raw_report_url }}" target="_blank" rel="noopener">
+      Full HTML Report &rarr;
+    </a>
+  </main>
+</body>
+</html>

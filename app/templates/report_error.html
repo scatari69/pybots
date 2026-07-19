@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Simulation failed - simcbots</title>
+  <title>{{ title | default("Simulation failed") }} - simcbots</title>
   <link rel="stylesheet" href="/report.css" />
 </head>
 <body class="report">
   <main>
     <a class="back-link" href="/">&laquo; Back to simcbots</a>
     <div class="error-box">
-      <p>The simulation failed.</p>
-      <pre>{{ error }}</pre>
+      <p>{{ title | default("The simulation failed.") }}</p>
+      {% if error %}<pre>{{ error }}</pre>{% endif %}
     </div>
   </main>
 </body>

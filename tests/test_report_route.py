@@ -24,6 +24,16 @@ async def test_report_pending_shows_status(client):
     assert "queued" in response.text
 
 
+async def test_report_cancelled_shows_message(client):
+    job = await main.job_store.create()
+    job.status = main.JobStatus.CANCELLED
+
+    response = client.get(f"/report/{job.id}")
+
+    assert response.status_code == 200
+    assert "cancelled" in response.text
+
+
 async def test_report_error_shows_log_tail(client):
     job = await main.job_store.create()
     job.status = main.JobStatus.ERROR

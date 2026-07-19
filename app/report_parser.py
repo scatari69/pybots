@@ -38,6 +38,19 @@ def _buffs(player: dict) -> list[dict]:
     return buffs
 
 
+def parse_profilesets(results_path: Path) -> dict:
+    """Extract baseline dps + profileset results for a Top Gear run."""
+    data = json.loads(results_path.read_text())
+    sim = data["sim"]
+    player = sim["players"][0]
+
+    return {
+        "player_name": player["name"],
+        "baseline_dps": player["collected_data"]["dps"]["mean"],
+        "profilesets": sim.get("profilesets", {}).get("results", []),
+    }
+
+
 def parse_report(results_path: Path) -> dict:
     """Extract the fields needed for the summary page out of simc's json2 report.
 

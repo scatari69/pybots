@@ -1,0 +1,63 @@
+# Vexatra - Fury - 2026-07-18 23:11 - US/Stormrage
+# SimC Addon 12.0.0-01
+# WoW 12.0.7.68453, TOC 120007
+# Requires SimulationCraft 1205-01 or newer
+
+warrior="Vexatra"
+level=90
+race=orc
+region=us
+server=stormrage
+role=attack
+professions=blacksmithing=100/alchemy=25
+spec=fury
+
+talents=CgEAAAAAAAAAAAAAAAAAAAAAAmxMmZmZWmlZmZmZmZmZmZmZmZYmZahZbmNjlZmxMzMmBG
+
+# Night-Ender's Tusks (688)
+head=,id=249952,bonus_id=12806/13335,gem_id=240983,enchant_id=8017
+# Amulet of the Abyssal Hymn (688)
+neck=,id=250247,bonus_id=12806/13335,gem_id=240900/240900
+shoulder=,id=249950,bonus_id=12806/13335,enchant_id=8031
+back=,id=258575,bonus_id=12806/13335
+chest=,id=249955,bonus_id=12806/13335,enchant_id=7987
+wrist=,id=237834,bonus_id=8793/8960/12066/12384/13622/9627,gem_id=240900
+hands=,id=151332,bonus_id=12806/13335
+waist=,id=249949,bonus_id=12806/13335,gem_id=240900
+legs=,id=249951,bonus_id=12806/13335,enchant_id=8163
+feet=,id=249954,bonus_id=12806/13335,enchant_id=7963
+finger1=,id=193708,bonus_id=12806/13335,gem_id=240900,enchant_id=7967
+finger2=,id=249920,bonus_id=12806/13335,gem_id=240900/240900,enchant_id=7967
+trinket1=,id=249343,bonus_id=12806/13335
+trinket2=,id=249342,bonus_id=12806/13335
+main_hand=,id=249277,bonus_id=12806/13335,enchant_id=8041
+
+### Gear from Bags
+#
+# Voidclaw Gauntlets (676)
+# hands=,id=237522,bonus_id=12806/13335
+#
+# Platinum Star Band (676)
+# upgrade_levels=5:6:c#3008#120#0/6:6:c#3008#140#0
+# finger1=,id=215135,gem_id=213743,bonus_id=10421/9633,crafted_stats=36/49
+#
+# Gauntlets of the Ancient Sentinel (682)
+# hands=,id=212001,bonus_id=12806/13335
+
+### Weekly Reward Choices
+#
+# Gaze of the All-Seer (691)
+# trinket1=,id=242395,bonus_id=12806/13335
+#
+# Bellamy's Final Judgement (691)
+# main_hand=,id=249277,bonus_id=12806/13340,enchant_id=8041
+#
+### End of Weekly Reward Choices
+
+### Additional Character Info
+#
+# catalyst_currencies=c:3116:12
+#
+# upgrade_currencies=c:3008:395
+#
+# slot_high_watermarks=0:685:685
