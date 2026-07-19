@@ -31,6 +31,7 @@ def test_simulate_then_poll_until_done(client):
 
     assert status["status"] == "done"
     assert status["report_url"] == f"/reports/{job_id}/report.html"
+    assert status["summary_url"] == f"/report/{job_id}"
 
 
 def test_unknown_job_returns_404(client):

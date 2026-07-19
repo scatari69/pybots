@@ -1,0 +1,70 @@
+{
+  "sim": {
+    "options": {
+      "iterations": 65,
+      "fight_style": "Patchwerk"
+    },
+    "players": [
+      {
+        "name": "Test",
+        "race": "orc",
+        "specialization": "Fury Warrior",
+        "collected_data": {
+          "dps": {
+            "mean": 3698.26,
+            "mean_std_dev": 20.6
+          },
+          "fight_length": {
+            "mean": 297.77
+          }
+        },
+        "stats": [
+          {
+            "name": "auto_attack_mh",
+            "spell_name": "",
+            "type": "damage",
+            "num_executes": {"mean": 179.8},
+            "compound_amount": 738350.0
+          },
+          {
+            "name": "auto_attack_oh",
+            "spell_name": "",
+            "type": "damage",
+            "num_executes": {"mean": 176.9},
+            "compound_amount": 361866.0
+          },
+          {
+            "name": "charge_impact",
+            "spell_name": "Charge",
+            "type": "damage",
+            "num_executes": {"mean": 1.0},
+            "compound_amount": 580.0
+          },
+          {
+            "name": "flask",
+            "spell_name": "Flask of Alchemical Chaos",
+            "type": "damage",
+            "num_executes": {"mean": 1.0},
+            "compound_amount": 0.0
+          }
+        ],
+        "buffs": [
+          {
+            "name": "blood_fury",
+            "spell_name": "Blood Fury",
+            "start_count": 3.0,
+            "uptime": 14.73
+          }
+        ],
+        "buffs_constant": [
+          {
+            "name": "battle_shout",
+            "spell_name": "Battle Shout",
+            "start_count": 1.0,
+            "uptime": 100.0
+          }
+        ]
+      }
+    ]
+  }
+}

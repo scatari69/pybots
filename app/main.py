@@ -2,18 +2,22 @@ import asyncio
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 from app.jobs import JobStatus, JobStore
+from app.report_parser import parse_report
 from app.schemas import JobStatusResponse, SimulateRequest
-from app.simc_runner import run_simulation
+from app.simc_runner import REPORT_FILENAME, RESULTS_FILENAME, run_simulation
 
 DATA_DIR = Path(os.environ.get("SIMCBOTS_DATA_DIR", "data"))
 JOBS_DIR = DATA_DIR / "jobs"
 JOBS_DIR.mkdir(parents=True, exist_ok=True)
 
 job_store = JobStore(JOBS_DIR)
+templates = Jinja2Templates(directory="app/templates")
 
 # Keep strong references to in-flight background tasks so they aren't
 # garbage-collected mid-run (asyncio only holds a weak reference otherwise).
@@ -22,8 +26,12 @@ _background_tasks: set[asyncio.Task] = set()
 app = FastAPI(title="simcbots")
 
 
-def _report_url(job_id: str) -> str:
-    return f"/reports/{job_id}/report.html"
+def _raw_report_url(job_id: str) -> str:
+    return f"/reports/{job_id}/{REPORT_FILENAME}"
+
+
+def _summary_url(job_id: str) -> str:
+    return f"/report/{job_id}"
 
 
 def _job_response(job) -> JobStatusResponse:
@@ -31,7 +39,8 @@ def _job_response(job) -> JobStatusResponse:
         job_id=job.id,
         status=job.status.value,
         error=job.error,
-        report_url=_report_url(job.id) if job.status == JobStatus.DONE else None,
+        report_url=_raw_report_url(job.id) if job.status == JobStatus.DONE else None,
+        summary_url=_summary_url(job.id) if job.status == JobStatus.DONE else None,
     )
 
 
@@ -54,6 +63,27 @@ async def get_job(job_id: str) -> JobStatusResponse:
     if job is None:
         raise HTTPException(status_code=404, detail="job not found")
     return _job_response(job)
+
+
+@app.get("/report/{job_id}", response_class=HTMLResponse)
+async def report_page(request: Request, job_id: str):
+    job = job_store.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="job not found")
+
+    if job.status in (JobStatus.QUEUED, JobStatus.RUNNING):
+        return templates.TemplateResponse(
+            request, "report_pending.html", {"status": job.status.value}
+        )
+    if job.status == JobStatus.ERROR:
+        return templates.TemplateResponse(request, "report_error.html", {"error": job.error})
+
+    summary = parse_report(job.dir / RESULTS_FILENAME)
+    return templates.TemplateResponse(
+        request,
+        "report.html",
+        {"summary": summary, "raw_report_url": _raw_report_url(job.id)},
+    )
 
 
 app.mount("/reports", StaticFiles(directory=JOBS_DIR), name="reports")

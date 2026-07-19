@@ -1,0 +1,161 @@
+body.report {
+  margin: 0;
+  padding: 2rem 1rem;
+  background: #17181c;
+  color: #e6e6e6;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  display: flex;
+  justify-content: center;
+}
+
+.report main {
+  width: 100%;
+  max-width: 720px;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 1rem;
+  color: #9a9a9a;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.back-link:hover {
+  color: #e6e6e6;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.dps-value {
+  font-size: 2.75rem;
+  font-weight: 700;
+  color: #ffd75e;
+}
+
+.dps-label {
+  font-size: 1rem;
+  color: #9a9a9a;
+}
+
+.subtitle {
+  color: #9a9a9a;
+  margin: 0.15rem 0 0;
+}
+
+.sim-details {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  background: #1f2024;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.sim-details dt {
+  color: #9a9a9a;
+}
+
+.sim-details dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.sim-details div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.panel {
+  background: #1f2024;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.panel-title {
+  background: #2a2b30;
+  padding: 0.6rem 1rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.bar-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.bar-table td {
+  padding: 0.4rem 1rem;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.bar-table .name-cell {
+  width: 30%;
+}
+
+.bar-table .bar-cell {
+  width: 45%;
+}
+
+.bar-table .num-cell {
+  text-align: right;
+  color: #b5b5b5;
+}
+
+.bar-track {
+  background: #2a2b30;
+  border-radius: 3px;
+  height: 0.9rem;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f2a900, #ffd75e);
+  border-radius: 3px;
+}
+
+.bar-fill.buff {
+  background: linear-gradient(90deg, #3d8bd4, #6cc0ff);
+}
+
+.full-report-link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  color: #ffd75e;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.full-report-link:hover {
+  text-decoration: underline;
+}
+
+.pending,
+.error-box {
+  background: #1f2024;
+  border-radius: 6px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.error-box pre {
+  text-align: left;
+  overflow-x: auto;
+  background: #17181c;
+  padding: 1rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}

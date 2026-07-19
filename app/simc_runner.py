@@ -10,6 +10,9 @@ SIMC_BINARY = os.environ.get("SIMC_BINARY", "simc")
 # Truncate stored error output so a runaway log can't blow up the job response.
 MAX_ERROR_CHARS = 4000
 
+REPORT_FILENAME = "report.html"
+RESULTS_FILENAME = "results.json"
+
 
 async def run_simulation(
     job: Job,
@@ -29,12 +32,12 @@ async def run_simulation(
     input_path = job.dir / "input.simc"
     input_path.write_text(profile_text)
 
-    report_path = job.dir / "report.html"
     log_path = job.dir / "log.txt"
 
     args = [
         input_path.name,
-        f"html={report_path.name}",
+        f"html={REPORT_FILENAME}",
+        f"json2={RESULTS_FILENAME}",
         f"iterations={iterations}",
         f"fight_style={fight_style}",
     ]

@@ -12,3 +12,4 @@ class JobStatusResponse(BaseModel):
     status: str
     error: str | None = None
     report_url: str | None = None
+    summary_url: str | None = None

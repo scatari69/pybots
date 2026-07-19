@@ -2,7 +2,6 @@ const form = document.getElementById("sim-form");
 const submitBtn = document.getElementById("submit-btn");
 const statusSection = document.getElementById("status");
 const statusText = document.getElementById("status-text");
-const reportLink = document.getElementById("report-link");
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -11,7 +10,6 @@ form.addEventListener("submit", async (event) => {
 
   submitBtn.disabled = true;
   statusSection.hidden = false;
-  reportLink.hidden = true;
   statusText.textContent = "Submitting...";
 
   const body = {
@@ -53,9 +51,8 @@ async function pollJob(jobId) {
     submitBtn.disabled = false;
 
     if (job.status === "done") {
-      statusText.textContent = "Done!";
-      reportLink.href = job.report_url;
-      reportLink.hidden = false;
+      statusText.textContent = "Done! Redirecting to report...";
+      window.location.href = job.summary_url;
     } else {
       statusText.textContent = `Simulation failed: ${job.error ?? "unknown error"}`;
     }

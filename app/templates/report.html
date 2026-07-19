@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ summary.player_name }} - {{ "%.0f"|format(summary.dps_mean) }} DPS - simcbots</title>
+  <link rel="stylesheet" href="/report.css" />
+</head>
+<body class="report">
+  <main>
+    <a class="back-link" href="/">&laquo; Back to simcbots</a>
+
+    <div class="header">
+      <div class="dps-value">{{ "{:,.0f}".format(summary.dps_mean) }}</div>
+      <div class="dps-label">DPS</div>
+    </div>
+    <p class="subtitle">
+      {{ summary.player_name }} &mdash; {{ summary.race|capitalize }} {{ summary.specialization }}
+    </p>
+
+    <dl class="sim-details">
+      <div><dt>Fight style</dt><dd>{{ summary.fight_style }}</dd></div>
+      <div><dt>Iterations</dt><dd>{{ summary.iterations }}</dd></div>
+      <div><dt>Fight length</dt><dd>{{ "%.0f"|format(summary.fight_length) }}s</dd></div>
+      <div><dt>Margin of error</dt><dd>&plusmn;{{ "%.0f"|format(summary.dps_error) }} DPS</dd></div>
+    </dl>
+
+    <div class="panel">
+      <div class="panel-title">Damage Breakdown</div>
+      <table class="bar-table">
+        {% for ability in summary.abilities %}
+        <tr>
+          <td class="name-cell">{{ ability.name }}</td>
+          <td class="bar-cell">
+            <div class="bar-track">
+              <div class="bar-fill" style="width: {{ ability.percent }}%"></div>
+            </div>
+          </td>
+          <td class="num-cell">{{ "%.1f"|format(ability.percent) }}%</td>
+          <td class="num-cell">{{ "{:,.0f}".format(ability.amount) }}</td>
+          <td class="num-cell">{{ "%.1f"|format(ability.count) }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Buff Uptime</div>
+      <table class="bar-table">
+        {% for buff in summary.buffs %}
+        <tr>
+          <td class="name-cell">{{ buff.name }}</td>
+          <td class="bar-cell">
+            <div class="bar-track">
+              <div class="bar-fill buff" style="width: {{ buff.uptime }}%"></div>
+            </div>
+          </td>
+          <td class="num-cell">{{ "%.1f"|format(buff.uptime) }}%</td>
+          <td class="num-cell">{{ "%.0f"|format(buff.count) }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+
+    <a class="full-report-link" href="{{ raw_report_url }}" target="_blank" rel="noopener">
+      Full HTML Report &rarr;
+    </a>
+  </main>
+</body>
+</html>
