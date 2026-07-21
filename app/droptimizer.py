@@ -2,26 +2,33 @@
 
 Unlike Top Gear (candidates come from the player's own /simc export), the
 Droptimizer candidate list comes from a data-driven catalog of the current
-season's loot -- raid bosses per difficulty, M+ dungeons per key-level
-bracket (+ vault), world bosses, and delves. See app/data/droptimizer_catalog.json
-for the schema and its "_readme" note: the shipped catalog is placeholder data
-to exercise this module end-to-end, not real current-tier loot.
+season's loot. See app/data/droptimizer_catalog.json's "_readme" for current
+coverage (Season 1 raids only as of this writing) and
+scripts/build_droptimizer_catalog.py for how it's generated from real Wago
+DB2 data.
 
 Mechanically this follows Top Gear's playbook: each (item, source) pair
 becomes one or more simc profilesets (rings/trinkets get both slot
 positions), appended to the pasted export and run in a single simc
-invocation against a shared baseline. The only new piece is resolving each
-source's item level from the catalog instead of trusting a bonus_id string,
-via simc's "ilevel=" item option:
+invocation against a shared baseline. Item level is NOT set via simc's
+"ilevel=" override -- that was tried first and found to segfault simc on
+weapon items even with a correct, real bonus_id alongside it (see git
+history). Instead each source carries the actual bonus_id combination
+Blizzard's client would apply for that difficulty/rank (a context flag plus
+an upgrade-track rank, resolved from real DB2 data -- see the build script's
+docstring for the full join chain and how it was validated). This is the
+same mechanism real /simc exports use, so simc resolves the item's stats and
+effective level itself, exactly as it would for equipped gear.
 
-  - "use_max_upgrade" picks a source's ilevel_max (assume fully upgraded via
-    crests/catalyst within that upgrade track) instead of ilevel_base (item
-    as it drops, unupgraded).
-  - "voidcore" adds a source's voidcore_bonus on top, where the source
-    defines one.
-  - "categories" restricts which source categories (raid/mythicplus/vault/
-    world_boss/delve/...) are included, so a run can be scoped down instead
-    of always simming the entire catalog.
+  - "use_max_upgrade" picks a source's bonus_ids_max (assume fully upgraded
+    via crests/catalyst within that upgrade track) instead of
+    bonus_ids_base (item as it drops, unupgraded).
+  - "voidcore" adds a source's bonus_ids_voidcore on top, where the source
+    defines any -- no source currently does; no mechanic by that name was
+    found in the data researched so far (see the build script's docstring).
+  - "categories" restricts which source categories (currently just "raid")
+    are included, so a run can be scoped down instead of always simming the
+    entire catalog.
 """
 
 import json
@@ -96,11 +103,11 @@ def eligible_items(catalog: dict, wow_class: str | None) -> list[dict]:
     return items
 
 
-def resolve_ilevel(source: dict, use_max_upgrade: bool, voidcore: bool) -> int:
-    ilevel = source["ilevel_max"] if use_max_upgrade else source["ilevel_base"]
+def resolve_bonus_ids(source: dict, use_max_upgrade: bool, voidcore: bool) -> list[int]:
+    bonus_ids = list(source["bonus_ids_max"] if use_max_upgrade else source["bonus_ids_base"])
     if voidcore:
-        ilevel += source.get("voidcore_bonus", 0)
-    return ilevel
+        bonus_ids += source.get("bonus_ids_voidcore", [])
+    return bonus_ids
 
 
 def build_input(
@@ -125,8 +132,10 @@ def build_input(
             if wanted_categories is not None and source["category"] not in wanted_categories:
                 continue
 
-            ilevel = resolve_ilevel(source, use_max_upgrade, voidcore)
-            item_options = f"id={item['id']},ilevel={ilevel}"
+            bonus_ids = resolve_bonus_ids(source, use_max_upgrade, voidcore)
+            item_options = f"id={item['id']}"
+            if bonus_ids:
+                item_options += ",bonus_id=" + "/".join(str(b) for b in bonus_ids)
 
             for slot in slot_variants(item["slot"]):
                 ps_name = f"DT{item_index}_{source_index}_{slot}"
@@ -138,7 +147,6 @@ def build_input(
                     "slot": slot,
                     "category": source["category"],
                     "label": source["label"],
-                    "ilevel": ilevel,
                 }
 
     return "\n".join(lines) + "\n", meta
@@ -171,7 +179,6 @@ def summarize(results: dict, meta: dict) -> dict:
             "slot": SLOT_LABELS.get(info["slot"], info["slot"].replace("_", " ").title()),
             "category": info["category"],
             "label": info["label"],
-            "ilevel": info["ilevel"],
             "dps": ps_result["mean"],
             "error": ps_result.get("mean_error", 0.0),
             "delta": ps_result["mean"] - baseline,

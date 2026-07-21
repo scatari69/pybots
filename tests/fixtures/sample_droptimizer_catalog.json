@@ -11,15 +11,15 @@
         {
           "category": "raid",
           "label": "Test Raid — Boss One (Normal)",
-          "ilevel_base": 500,
-          "ilevel_max": 500
+          "bonus_ids_base": [500],
+          "bonus_ids_max": [500]
         },
         {
           "category": "raid",
           "label": "Test Raid — Boss One (Heroic)",
-          "ilevel_base": 510,
-          "ilevel_max": 516,
-          "voidcore_bonus": 6
+          "bonus_ids_base": [510],
+          "bonus_ids_max": [516],
+          "bonus_ids_voidcore": [6]
         }
       ]
     },
@@ -33,8 +33,8 @@
         {
           "category": "mythicplus",
           "label": "Test Dungeon — End of Run",
-          "ilevel_base": 505,
-          "ilevel_max": 505
+          "bonus_ids_base": [505],
+          "bonus_ids_max": [505]
         }
       ]
     },
@@ -48,8 +48,8 @@
         {
           "category": "world_boss",
           "label": "Test World Boss",
-          "ilevel_base": 512,
-          "ilevel_max": 512
+          "bonus_ids_base": [512],
+          "bonus_ids_max": [512]
         }
       ]
     },
@@ -63,8 +63,8 @@
         {
           "category": "delve",
           "label": "Test Delve — Tier 8",
-          "ilevel_base": 505,
-          "ilevel_max": 505
+          "bonus_ids_base": [505],
+          "bonus_ids_max": [505]
         }
       ]
     }

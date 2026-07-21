@@ -7,7 +7,7 @@ from app.droptimizer import (
     eligible_items,
     load_catalog,
     load_meta,
-    resolve_ilevel,
+    resolve_bonus_ids,
     save_meta,
     summarize,
 )
@@ -65,12 +65,17 @@ def test_eligible_items_includes_everything_when_class_unknown():
     assert len(eligible_items(catalog, None)) == len(catalog["items"])
 
 
-def test_resolve_ilevel_base_vs_max_and_voidcore():
-    source = {"ilevel_base": 510, "ilevel_max": 516, "voidcore_bonus": 6}
-    assert resolve_ilevel(source, use_max_upgrade=False, voidcore=False) == 510
-    assert resolve_ilevel(source, use_max_upgrade=True, voidcore=False) == 516
-    assert resolve_ilevel(source, use_max_upgrade=True, voidcore=True) == 522
-    assert resolve_ilevel(source, use_max_upgrade=False, voidcore=True) == 516
+def test_resolve_bonus_ids_base_vs_max_and_voidcore():
+    source = {"bonus_ids_base": [510], "bonus_ids_max": [516], "bonus_ids_voidcore": [6]}
+    assert resolve_bonus_ids(source, use_max_upgrade=False, voidcore=False) == [510]
+    assert resolve_bonus_ids(source, use_max_upgrade=True, voidcore=False) == [516]
+    assert resolve_bonus_ids(source, use_max_upgrade=True, voidcore=True) == [516, 6]
+    assert resolve_bonus_ids(source, use_max_upgrade=False, voidcore=True) == [510, 6]
+
+
+def test_resolve_bonus_ids_voidcore_defaults_to_empty():
+    source = {"bonus_ids_base": [510], "bonus_ids_max": [516]}
+    assert resolve_bonus_ids(source, use_max_upgrade=True, voidcore=True) == [516]
 
 
 def test_build_input_appends_profilesets_for_every_source():
@@ -93,30 +98,30 @@ def test_build_input_ring_gets_both_finger_variants():
     assert variants == {"finger1", "finger2"}
 
 
-def test_build_input_uses_max_upgrade_ilevel_by_default():
+def test_build_input_uses_max_upgrade_bonus_ids_by_default():
     catalog = load_catalog(CATALOG_PATH)
     items = [item for item in catalog["items"] if item["name"] == "Test Plate Chest"]
     combined, meta = build_input(EXPORT, items)
 
-    assert "ilevel=516" in combined  # heroic source's ilevel_max
-    ilevels = {info["ilevel"] for info in meta.values()}
-    assert ilevels == {500, 516}
+    assert "bonus_id=516" in combined  # heroic source's bonus_ids_max
+    assert "id=800001" in combined
 
 
 def test_build_input_respects_use_max_upgrade_false():
     catalog = load_catalog(CATALOG_PATH)
     items = [item for item in catalog["items"] if item["name"] == "Test Plate Chest"]
-    _, meta = build_input(EXPORT, items, use_max_upgrade=False)
+    combined, _ = build_input(EXPORT, items, use_max_upgrade=False)
 
-    assert {info["ilevel"] for info in meta.values()} == {500, 510}
+    assert "bonus_id=510" in combined
+    assert "bonus_id=516" not in combined
 
 
-def test_build_input_voidcore_adds_bonus():
+def test_build_input_voidcore_adds_bonus_id():
     catalog = load_catalog(CATALOG_PATH)
     items = [item for item in catalog["items"] if item["name"] == "Test Plate Chest"]
-    _, meta = build_input(EXPORT, items, use_max_upgrade=True, voidcore=True)
+    combined, _ = build_input(EXPORT, items, use_max_upgrade=True, voidcore=True)
 
-    assert 522 in {info["ilevel"] for info in meta.values()}  # 516 + 6 voidcore bonus
+    assert "bonus_id=516/6" in combined
 
 
 def test_build_input_filters_by_category():
@@ -135,7 +140,7 @@ def test_meta_roundtrip(tmp_path):
 
 
 def test_summarize_picks_best_variant_and_ranks():
-    def info(item_index, source_index, name, slot, category, label, ilevel):
+    def info(item_index, source_index, name, slot, category, label):
         return {
             "item_index": item_index,
             "source_index": source_index,
@@ -143,13 +148,12 @@ def test_summarize_picks_best_variant_and_ranks():
             "slot": slot,
             "category": category,
             "label": label,
-            "ilevel": ilevel,
         }
 
     meta = {
-        "DT0_0_finger1": info(0, 0, "Ring", "finger1", "world_boss", "WB", 512),
-        "DT0_0_finger2": info(0, 0, "Ring", "finger2", "world_boss", "WB", 512),
-        "DT1_0_chest": info(1, 0, "Chest", "chest", "raid", "Boss", 516),
+        "DT0_0_finger1": info(0, 0, "Ring", "finger1", "world_boss", "WB"),
+        "DT0_0_finger2": info(0, 0, "Ring", "finger2", "world_boss", "WB"),
+        "DT1_0_chest": info(1, 0, "Chest", "chest", "raid", "Boss"),
     }
     results = {
         "player_name": "Vexatra",

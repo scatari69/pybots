@@ -46,7 +46,7 @@
         {% endif %}
         <tr data-category="{{ row.category }}">
           <td class="name-cell">
-            {{ row.name }}{% if row.ilevel %} ({{ row.ilevel }}){% endif %}
+            {{ row.name }}
             <span class="tag {{ row.category }}">{{ row.category.replace('_', ' ') }}</span>
             <span class="tag slot">{{ row.slot }}</span>
             <div class="source-label">{{ row.label }}</div>

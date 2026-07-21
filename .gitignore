@@ -6,3 +6,4 @@ __pycache__/
 *.egg-info/
 /data/
 .claude/settings.local.json
+scripts/.wago_cache/
