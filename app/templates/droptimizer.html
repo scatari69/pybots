@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Droptimizer - {{ summary.player_name }} - simcbots</title>
+  <link rel="stylesheet" href="/report.css" />
+</head>
+<body class="report">
+  <main>
+    <a class="back-link" href="/">&laquo; Back to simcbots</a>
+
+    <div class="header">
+      <div class="dps-value">{{ "{:,.0f}".format(summary.baseline_dps) }}</div>
+      <div class="dps-label">DPS equipped</div>
+    </div>
+    <p class="subtitle">{{ summary.player_name }} &mdash; Droptimizer: {{ summary.rows|length }} drop(s) compared</p>
+
+    {% if summary.categories %}
+    <div class="filters" id="category-filters">
+      <span class="filters-label">Filter:</span>
+      {% for cat in summary.categories %}
+      <button type="button" class="filter-chip active" data-category="{{ cat }}">
+        {{ cat.replace('_', ' ') }}
+      </button>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="panel">
+      <div class="panel-title">Ranked by DPS</div>
+      <table class="bar-table">
+        {% for row in summary.rows %}
+        {% if loop.first or (row.delta < 0 and loop.previtem.delta >= 0) %}
+        {% if row.delta < 0 %}
+        <tr class="baseline-row">
+          <td class="name-cell">Currently equipped</td>
+          <td class="bar-cell">
+            <div class="bar-track">
+              <div class="bar-fill baseline" style="width: {{ summary.baseline_bar_pct }}%"></div>
+            </div>
+          </td>
+          <td class="num-cell">&mdash;</td>
+          <td class="num-cell">{{ "{:,.0f}".format(summary.baseline_dps) }}</td>
+        </tr>
+        {% endif %}
+        {% endif %}
+        <tr data-category="{{ row.category }}">
+          <td class="name-cell">
+            {{ row.name }}{% if row.ilevel %} ({{ row.ilevel }}){% endif %}
+            <span class="tag {{ row.category }}">{{ row.category.replace('_', ' ') }}</span>
+            <span class="tag slot">{{ row.slot }}</span>
+            <div class="source-label">{{ row.label }}</div>
+          </td>
+          <td class="bar-cell">
+            <div class="bar-track">
+              <div class="bar-fill {{ 'gain' if row.delta >= 0 else 'loss' }}"
+                   style="width: {{ row.bar_pct }}%"></div>
+            </div>
+          </td>
+          <td class="num-cell {{ 'gain-text' if row.delta >= 0 else 'loss-text' }}">
+            {{ "%+.2f"|format(row.delta_pct) }}%
+          </td>
+          <td class="num-cell">{{ "{:,.0f}".format(row.dps) }}</td>
+        </tr>
+        {% if loop.last and row.delta >= 0 %}
+        <tr class="baseline-row">
+          <td class="name-cell">Currently equipped</td>
+          <td class="bar-cell">
+            <div class="bar-track">
+              <div class="bar-fill baseline" style="width: {{ summary.baseline_bar_pct }}%"></div>
+            </div>
+          </td>
+          <td class="num-cell">&mdash;</td>
+          <td class="num-cell">{{ "{:,.0f}".format(summary.baseline_dps) }}</td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </table>
+    </div>
+
+    <a class="full-report-link" href="{{ raw_report_url }}" target="_blank" rel="noopener">
+      Full HTML Report &rarr;
+    </a>
+  </main>
+
+  <script>
+    const chips = document.querySelectorAll(".filter-chip");
+    function applyFilters() {
+      const active = new Set(
+        [...chips].filter((chip) => chip.classList.contains("active")).map((chip) => chip.dataset.category)
+      );
+      document.querySelectorAll("tr[data-category]").forEach((row) => {
+        row.style.display = active.has(row.dataset.category) ? "" : "none";
+      });
+    }
+    chips.forEach((chip) => {
+      chip.addEventListener("click", () => {
+        chip.classList.toggle("active");
+        applyFilters();
+      });
+    });
+  </script>
+</body>
+</html>

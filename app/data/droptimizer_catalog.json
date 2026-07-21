@@ -1,0 +1,121 @@
+{
+  "_readme": "PLACEHOLDER DATA. Source labels/categories/ilvls below are made up to exercise the Droptimizer engine end-to-end; they are not this season's real loot tables. Item ids are deliberately reused from tests/fixtures/sample_export.simc (a real, currently-valid gear set) rather than invented, so this catalog is actually simulatable out of the box -- simc segfaults on some malformed/nonexistent item ids instead of failing cleanly, which would take down the whole combined run. Replace the 'items' list with real current-tier data (raid bosses per difficulty, M+ dungeons per key-level bracket + vault, world bosses, delves) before trusting sim results; keep reusing real item ids if you add more placeholders. The engine (app/droptimizer.py) doesn't need to change when you do \u2014 see CLAUDE.md. NOTE: no weapon-slot (main_hand/off_hand) entry is included here -- verified against the simc nightly this app currently pulls, an 'id=...,ilevel=...' profileset override on a weapon segfaults simc even when reusing the exact item/bonus_id the baseline profile already equips successfully (a simc-side issue with weapon item overrides in profilesets, not an app bug). Test any weapon-slot catalog entries you add against your own simc build before trusting them in a combined run.",
+  "season": "Sample Season (placeholder catalog)",
+  "items": [
+    {
+      "id": 249955,
+      "name": "Sample Plate Chestguard",
+      "slot": "chest",
+      "armor_type": "plate",
+      "classes": null,
+      "sources": [
+        {
+          "category": "raid",
+          "label": "Sample Raid \u2014 Trashborn (Normal)",
+          "difficulty": "Normal",
+          "ilevel_base": 597,
+          "ilevel_max": 597
+        },
+        {
+          "category": "raid",
+          "label": "Sample Raid \u2014 Trashborn (Heroic)",
+          "difficulty": "Heroic",
+          "ilevel_base": 610,
+          "ilevel_max": 616,
+          "voidcore_bonus": 6
+        },
+        {
+          "category": "raid",
+          "label": "Sample Raid \u2014 Trashborn (Mythic)",
+          "difficulty": "Mythic",
+          "ilevel_base": 623,
+          "ilevel_max": 629,
+          "voidcore_bonus": 6
+        }
+      ]
+    },
+    {
+      "id": 151332,
+      "name": "Sample Cloth Gloves",
+      "slot": "hands",
+      "armor_type": "cloth",
+      "classes": null,
+      "sources": [
+        {
+          "category": "mythicplus",
+          "label": "Sample Dungeon \u2014 End of Run (+7)",
+          "ilevel_base": 610,
+          "ilevel_max": 610
+        },
+        {
+          "category": "mythicplus",
+          "label": "Sample Dungeon \u2014 End of Run (+10)",
+          "ilevel_base": 619,
+          "ilevel_max": 619
+        },
+        {
+          "category": "vault",
+          "label": "Great Vault \u2014 Mythic+ row (+10)",
+          "ilevel_base": 623,
+          "ilevel_max": 623
+        }
+      ]
+    },
+    {
+      "id": 193708,
+      "name": "Sample Signet Ring",
+      "slot": "finger1",
+      "armor_type": null,
+      "classes": null,
+      "sources": [
+        {
+          "category": "world_boss",
+          "label": "Sample World Boss",
+          "ilevel_base": 619,
+          "ilevel_max": 619
+        }
+      ]
+    },
+    {
+      "id": 249343,
+      "name": "Sample Battle Trinket",
+      "slot": "trinket1",
+      "armor_type": null,
+      "classes": null,
+      "sources": [
+        {
+          "category": "delve",
+          "label": "Sample Delve \u2014 Tier 8",
+          "ilevel_base": 610,
+          "ilevel_max": 610
+        },
+        {
+          "category": "delve",
+          "label": "Sample Delve \u2014 Tier 11",
+          "ilevel_base": 623,
+          "ilevel_max": 623,
+          "voidcore_bonus": 3
+        }
+      ]
+    },
+    {
+      "id": 249342,
+      "name": "Sample Warrior Class Trinket",
+      "slot": "trinket1",
+      "armor_type": null,
+      "classes": [
+        "warrior"
+      ],
+      "sources": [
+        {
+          "category": "raid",
+          "label": "Sample Raid \u2014 Voidcaller (Heroic)",
+          "difficulty": "Heroic",
+          "ilevel_base": 610,
+          "ilevel_max": 616,
+          "voidcore_bonus": 6
+        }
+      ]
+    }
+  ]
+}

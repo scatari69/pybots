@@ -178,6 +178,65 @@ body.report {
   color: #9fd8ab;
 }
 
+.tag.raid {
+  background: #5a2e2e;
+  color: #f0a8a8;
+}
+
+.tag.mythicplus {
+  background: #2e4a5a;
+  color: #a8d4f0;
+}
+
+.tag.world_boss {
+  background: #5a4a2e;
+  color: #f0d4a8;
+}
+
+.tag.delve {
+  background: #3d5a2e;
+  color: #c4f0a8;
+}
+
+.source-label {
+  margin-top: 0.1rem;
+  font-size: 0.7rem;
+  color: #7a7a7a;
+  white-space: normal;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.filters-label {
+  color: #9a9a9a;
+  font-size: 0.85rem;
+  margin-right: 0.25rem;
+}
+
+.filter-chip {
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid #3a3b40;
+  background: #1f2024;
+  color: #7a7a7a;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+
+.filter-chip.active {
+  border-color: #f2a900;
+  color: #ffd75e;
+  background: #2a2410;
+}
+
 .full-report-link {
   display: inline-block;
   margin-top: 0.5rem;

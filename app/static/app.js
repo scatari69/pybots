@@ -6,20 +6,31 @@ const statusText = document.getElementById("status-text");
 const profileInput = document.getElementById("profile");
 const candidatesSection = document.getElementById("candidates");
 const candidateList = document.getElementById("candidate-list");
+const droptimizerToggles = document.getElementById("droptimizer-toggles");
+const droptimizerPreview = document.getElementById("droptimizer-preview");
+const droptimizerCategories = document.getElementById("droptimizer-categories");
 
 const POLL_INTERVAL_MS = 1000;
 
-let mode = "quick"; // "quick" | "topgear"
+const SUBMIT_LABELS = {
+  quick: "Run simulation",
+  topgear: "Find gear",
+  droptimizer: "Preview drops",
+};
+
+let mode = "quick"; // "quick" | "topgear" | "droptimizer"
 let currentJobId = null;
 let previewLoaded = false;
 
 const tabs = {
   quick: document.getElementById("tab-quick"),
   topgear: document.getElementById("tab-topgear"),
+  droptimizer: document.getElementById("tab-droptimizer"),
 };
 const hints = {
   quick: document.getElementById("hint-quick"),
   topgear: document.getElementById("hint-topgear"),
+  droptimizer: document.getElementById("hint-droptimizer"),
 };
 
 function setMode(next) {
@@ -29,19 +40,23 @@ function setMode(next) {
     hints[key].hidden = key !== mode;
   }
   candidatesSection.hidden = true;
+  droptimizerPreview.hidden = true;
+  droptimizerToggles.hidden = mode !== "droptimizer";
   previewLoaded = false;
-  submitBtn.textContent = mode === "topgear" ? "Find gear" : "Run simulation";
+  submitBtn.textContent = SUBMIT_LABELS[mode];
 }
 
 tabs.quick.addEventListener("click", () => setMode("quick"));
 tabs.topgear.addEventListener("click", () => setMode("topgear"));
+tabs.droptimizer.addEventListener("click", () => setMode("droptimizer"));
 
 // Re-parse if the profile changes after a preview was shown.
 profileInput.addEventListener("input", () => {
-  if (mode === "topgear" && previewLoaded) {
+  if (mode !== "quick" && previewLoaded) {
     previewLoaded = false;
     candidatesSection.hidden = true;
-    submitBtn.textContent = "Find gear";
+    droptimizerPreview.hidden = true;
+    submitBtn.textContent = SUBMIT_LABELS[mode];
   }
 });
 
@@ -107,6 +122,71 @@ function selectedIndices() {
   );
 }
 
+function renderCategories(byCategory) {
+  droptimizerCategories.innerHTML = "";
+  for (const entry of byCategory) {
+    const label = document.createElement("label");
+    label.className = "candidate";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = true;
+    checkbox.dataset.category = entry.category;
+
+    const text = document.createElement("span");
+    text.textContent = `${entry.category.replace("_", " ")} (${entry.count})`;
+
+    label.append(checkbox, text);
+    droptimizerCategories.append(label);
+  }
+  droptimizerPreview.hidden = false;
+}
+
+function selectedCategories() {
+  return [...droptimizerCategories.querySelectorAll("input:checked")].map(
+    (cb) => cb.dataset.category
+  );
+}
+
+async function handleDroptimizerSubmit() {
+  if (!previewLoaded) {
+    statusSection.hidden = false;
+    statusText.textContent = "Loading catalog...";
+    try {
+      const preview = await postJson("/api/droptimizer/preview", {
+        profile: profileInput.value,
+      });
+      if (preview.total_sources === 0) {
+        statusText.textContent =
+          "No droptimizer items matched this character in the catalog.";
+        return;
+      }
+      renderCategories(preview.by_category);
+      previewLoaded = true;
+      submitBtn.textContent = "Run Droptimizer";
+      const classNote = preview.wow_class ? ` (${preview.wow_class})` : "";
+      statusText.textContent =
+        `${preview.season} — ${preview.total_sources} drop source(s)${classNote}. ` +
+        "Untick any category you don't want, then run.";
+    } catch (err) {
+      statusText.textContent = `Failed to load catalog: ${err.message}`;
+    }
+    return;
+  }
+
+  const categories = selectedCategories();
+  if (categories.length === 0) {
+    statusText.textContent = "Select at least one source category.";
+    return;
+  }
+  await submitJob("/api/droptimizer", {
+    ...simOptions(),
+    use_max_upgrade: document.getElementById("use_max_upgrade").checked,
+    voidcore: document.getElementById("voidcore").checked,
+    categories,
+  });
+}
+
 async function handleTopGearSubmit() {
   if (!previewLoaded) {
     statusSection.hidden = false;
@@ -158,6 +238,8 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (mode === "topgear") {
     await handleTopGearSubmit();
+  } else if (mode === "droptimizer") {
+    await handleDroptimizerSubmit();
   } else {
     await submitJob("/api/simulate", simOptions());
   }

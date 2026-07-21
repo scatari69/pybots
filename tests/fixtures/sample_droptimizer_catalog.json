@@ -1,0 +1,72 @@
+{
+  "season": "Test Season",
+  "items": [
+    {
+      "id": 800001,
+      "name": "Test Plate Chest",
+      "slot": "chest",
+      "armor_type": "plate",
+      "classes": null,
+      "sources": [
+        {
+          "category": "raid",
+          "label": "Test Raid — Boss One (Normal)",
+          "ilevel_base": 500,
+          "ilevel_max": 500
+        },
+        {
+          "category": "raid",
+          "label": "Test Raid — Boss One (Heroic)",
+          "ilevel_base": 510,
+          "ilevel_max": 516,
+          "voidcore_bonus": 6
+        }
+      ]
+    },
+    {
+      "id": 800002,
+      "name": "Test Cloth Robe",
+      "slot": "chest",
+      "armor_type": "cloth",
+      "classes": null,
+      "sources": [
+        {
+          "category": "mythicplus",
+          "label": "Test Dungeon — End of Run",
+          "ilevel_base": 505,
+          "ilevel_max": 505
+        }
+      ]
+    },
+    {
+      "id": 800003,
+      "name": "Test Signet Ring",
+      "slot": "finger1",
+      "armor_type": null,
+      "classes": null,
+      "sources": [
+        {
+          "category": "world_boss",
+          "label": "Test World Boss",
+          "ilevel_base": 512,
+          "ilevel_max": 512
+        }
+      ]
+    },
+    {
+      "id": 800004,
+      "name": "Test Warrior Trinket",
+      "slot": "trinket1",
+      "armor_type": null,
+      "classes": ["warrior"],
+      "sources": [
+        {
+          "category": "delve",
+          "label": "Test Delve — Tier 8",
+          "ilevel_base": 505,
+          "ilevel_max": 505
+        }
+      ]
+    }
+  ]
+}

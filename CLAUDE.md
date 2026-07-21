@@ -87,6 +87,37 @@ Gear a single combined run. Flow: `POST /api/topgear/preview` parses candidates 
 UI → `POST /api/topgear` runs (job `kind="topgear"` selects the ranked-list template in
 `/report/{job_id}`).
 
+**Droptimizer (`app/droptimizer.py` + `app/data/droptimizer_catalog.json`).** Sims every item that
+can drop this season — raid per difficulty, M+ dungeons per key-level bracket + vault, world
+bosses, delves — against one baseline, in one combined run. Same profileset mechanism as Top Gear
+(`DT<item_index>_<source_index>_<slot>` names, rings/trinkets get both slot positions, best variant
+kept per `(item_index, source_index)`), but the candidate list comes from a data catalog instead of
+parsing the player's own export, since "everything that can drop" isn't present in a `/simc` export
+at all. Each catalog item lists `armor_type`/`classes` restrictions and one or more `sources`
+(`category`, display `label`, `ilevel_base`, `ilevel_max`, optional `voidcore_bonus`).
+`detect_class()` reads the class token off the export's `class="Name"` line (e.g. `warrior=`) and
+`eligible_items()` filters the catalog to what that class can equip — if the class can't be
+detected, filtering is skipped rather than silently dropping every candidate. `build_input()`
+resolves each source's simc item level via the `ilevel=` item-string option (no bonus_id
+arithmetic needed): `ilevel_max` unless `use_max_upgrade=False` picks `ilevel_base`, plus
+`voidcore_bonus` when `voidcore=True`. `categories` narrows a run to specific source types instead
+of always simming the whole catalog. Flow mirrors Top Gear: `POST /api/droptimizer/preview` returns
+the detected class and a per-category item count for the UI's category checkboxes → `POST
+/api/droptimizer` runs (job `kind="droptimizer"`, meta persisted to `droptimizer.json`) → the
+ranked report (`droptimizer.html`) adds client-side filter chips (by `category`) that the roadmap's
+"per-source filters" call for, on top of Top Gear's ranked bar-table layout.
+**The shipped catalog is placeholder data** (see its `_readme` field) to exercise the engine
+end-to-end — source labels/categories/ilvls are made up, not this season's real loot tables, but
+the item ids are deliberately real ones reused from `tests/fixtures/sample_export.simc` rather than
+invented, so the catalog is actually simulatable as shipped: simc segfaults on some malformed item
+ids instead of failing that one profileset cleanly, which would otherwise take down the whole
+combined run. Swap in real current-tier data by editing the JSON; the engine code doesn't need to
+change. Known gaps: no weapon-type (dagger/sword/etc.) eligibility filtering, only armor-type/class;
+and no weapon-slot (`main_hand`/`off_hand`) example is shipped at all — verified against the simc
+nightly this app currently pulls, an `id=...,ilevel=...` profileset override on a weapon segfaults
+simc even reusing the exact item/bonus_id the baseline profile already equips, so any weapon-slot
+catalog entries should be tested against your own simc build before trusting them.
+
 **Why the binary comes from Docker Hub, not compiled here.** The `Dockerfile` copies the compiled
 `simc` binary and bundled `profiles/` out of `simulationcraftorg/simc:latest` in a multi-stage
 build rather than compiling SimulationCraft from source. That upstream image is Alpine-based, so

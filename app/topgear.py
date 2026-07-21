@@ -11,28 +11,9 @@ import json
 from pathlib import Path
 
 from app.gear_parser import Candidate
+from app.simc_slots import SLOT_LABELS, slot_variants
 
 META_FILENAME = "topgear.json"
-
-_PAIRED_SLOTS = {
-    "finger1": ["finger1", "finger2"],
-    "finger2": ["finger1", "finger2"],
-    "trinket1": ["trinket1", "trinket2"],
-    "trinket2": ["trinket1", "trinket2"],
-}
-
-SLOT_LABELS = {
-    "finger1": "Ring 1",
-    "finger2": "Ring 2",
-    "trinket1": "Trinket 1",
-    "trinket2": "Trinket 2",
-    "main_hand": "Main Hand",
-    "off_hand": "Off Hand",
-}
-
-
-def _variants(slot: str) -> list[str]:
-    return _PAIRED_SLOTS.get(slot, [slot])
 
 
 def build_input(export_text: str, candidates: list[Candidate]) -> tuple[str, dict]:
@@ -48,7 +29,7 @@ def build_input(export_text: str, candidates: list[Candidate]) -> tuple[str, dic
 
     for candidate in candidates:
         item_options = candidate.item_string.split("=", 1)[1]
-        for slot in _variants(candidate.slot):
+        for slot in slot_variants(candidate.slot):
             ps_name = f"TG{candidate.index}_{slot}"
             lines.append(f'profileset."{ps_name}"+={slot}={item_options}')
             meta[ps_name] = {

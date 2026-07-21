@@ -34,6 +34,36 @@ class TopGearPreviewResponse(BaseModel):
     candidates: list[CandidateOut]
 
 
+class DroptimizerRequest(SimulateRequest):
+    use_max_upgrade: bool = Field(
+        True, description="Sim items at their max upgrade-track ilvl instead of base drop ilvl"
+    )
+    voidcore: bool = Field(
+        False, description="Apply each source's Voidcore ilvl bonus, where the source has one"
+    )
+    categories: list[str] | None = Field(
+        None, description="Limit to these source categories (raid/mythicplus/vault/world_boss/"
+        "delve/...); omit or null for everything in the catalog"
+    )
+
+
+class DroptimizerPreviewRequest(BaseModel):
+    profile: str
+
+
+class CategoryCount(BaseModel):
+    category: str
+    count: int
+
+
+class DroptimizerPreviewResponse(BaseModel):
+    season: str
+    wow_class: str | None
+    armor_type: str | None
+    total_sources: int
+    by_category: list[CategoryCount]
+
+
 class JobStatusResponse(BaseModel):
     job_id: str
     status: str

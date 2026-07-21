@@ -8,12 +8,16 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app import topgear
+from app import droptimizer, topgear
 from app.gear_parser import parse_candidates
 from app.jobs import JobStatus, JobStore
 from app.report_parser import parse_profilesets, parse_report
 from app.schemas import (
     CandidateOut,
+    CategoryCount,
+    DroptimizerPreviewRequest,
+    DroptimizerPreviewResponse,
+    DroptimizerRequest,
     JobStatusResponse,
     SimulateRequest,
     TopGearPreviewRequest,
@@ -112,6 +116,61 @@ async def topgear_run(req: TopGearRequest) -> JobStatusResponse:
     return _job_response(job)
 
 
+@app.post("/api/droptimizer/preview", response_model=DroptimizerPreviewResponse)
+async def droptimizer_preview(req: DroptimizerPreviewRequest) -> DroptimizerPreviewResponse:
+    catalog = droptimizer.load_catalog()
+    wow_class = droptimizer.detect_class(req.profile)
+    items = droptimizer.eligible_items(catalog, wow_class)
+
+    counts: dict[str, int] = {}
+    for item in items:
+        for source in item["sources"]:
+            counts[source["category"]] = counts.get(source["category"], 0) + 1
+
+    return DroptimizerPreviewResponse(
+        season=catalog.get("season", ""),
+        wow_class=wow_class,
+        armor_type=droptimizer.armor_type_for_class(wow_class),
+        total_sources=sum(counts.values()),
+        by_category=[
+            CategoryCount(category=category, count=count)
+            for category, count in sorted(counts.items())
+        ],
+    )
+
+
+@app.post("/api/droptimizer", response_model=JobStatusResponse)
+async def droptimizer_run(req: DroptimizerRequest) -> JobStatusResponse:
+    catalog = droptimizer.load_catalog()
+    items = droptimizer.eligible_items(catalog, droptimizer.detect_class(req.profile))
+
+    combined_profile, meta = droptimizer.build_input(
+        req.profile,
+        items,
+        use_max_upgrade=req.use_max_upgrade,
+        voidcore=req.voidcore,
+        categories=req.categories,
+    )
+    if not meta:
+        raise HTTPException(
+            status_code=400,
+            detail="no droptimizer items matched this character and category selection",
+        )
+
+    job = await job_store.create(kind="droptimizer")
+    droptimizer.save_meta(job.dir, meta)
+
+    sim_options = req.model_dump(
+        exclude={"use_max_upgrade", "voidcore", "categories"}
+    ) | {"profile": combined_profile}
+    sim_req = SimulateRequest(**sim_options)
+    task = asyncio.create_task(run_simulation(job, sim_req))
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
+
+    return _job_response(job)
+
+
 @app.get("/api/simulate/{job_id}", response_model=JobStatusResponse)
 async def get_job(job_id: str) -> JobStatusResponse:
     job = job_store.get(job_id)
@@ -159,6 +218,15 @@ async def report_page(request: Request, job_id: str):
         return templates.TemplateResponse(
             request,
             "topgear.html",
+            {"summary": summary, "raw_report_url": _raw_report_url(job.id)},
+        )
+
+    if job.kind == "droptimizer":
+        results = parse_profilesets(job.dir / RESULTS_FILENAME)
+        summary = droptimizer.summarize(results, droptimizer.load_meta(job.dir))
+        return templates.TemplateResponse(
+            request,
+            "droptimizer.html",
             {"summary": summary, "raw_report_url": _raw_report_url(job.id)},
         )
 

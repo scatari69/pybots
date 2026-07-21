@@ -13,6 +13,7 @@
     <nav class="tabs">
       <button type="button" class="tab active" id="tab-quick">Quick Sim</button>
       <button type="button" class="tab" id="tab-topgear">Top Gear</button>
+      <button type="button" class="tab" id="tab-droptimizer">Droptimizer</button>
     </nav>
 
     <form id="sim-form">
@@ -22,6 +23,11 @@
       <p class="mode-hint" id="hint-topgear" hidden>
         Paste a full <code>/simc</code> addon export &mdash; gear from your bags and this week's
         vault choices will be compared against what you're wearing in one combined run.
+      </p>
+      <p class="mode-hint" id="hint-droptimizer" hidden>
+        Paste a full <code>/simc</code> addon export &mdash; every item that can drop this season
+        (raid, M+, world bosses, delves) is compared against what you're wearing in one combined
+        run.
       </p>
 
       <textarea
@@ -34,6 +40,22 @@
       <section id="candidates" hidden>
         <p class="candidates-title">Items to compare:</p>
         <div id="candidate-list"></div>
+      </section>
+
+      <div class="options toggles" id="droptimizer-toggles" hidden>
+        <label class="toggle">
+          <input type="checkbox" id="use_max_upgrade" checked />
+          Assume full upgrades
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="voidcore" />
+          Voidcore
+        </label>
+      </div>
+
+      <section id="droptimizer-preview" hidden>
+        <p class="candidates-title">Sources to include:</p>
+        <div id="droptimizer-categories"></div>
       </section>
 
       <div class="options">
