@@ -19,7 +19,7 @@
           "label": "Test Raid — Boss One (Heroic)",
           "bonus_ids_base": [510],
           "bonus_ids_max": [516],
-          "bonus_ids_voidcore": [6]
+          "bonus_ids_voidcore_max": [522]
         }
       ]
     },

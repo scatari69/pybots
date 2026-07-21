@@ -32,6 +32,18 @@ an "ilevel=" override also sidesteps the segfault found earlier when
 overriding a weapon's item level directly (see droptimizer_catalog.json's
 _readme and CLAUDE.md).
 
+"Voidcore" is the Ascendant Voidcore / Voidforge system (patch 12.0.5): a
+currency that pushes an already fully-upgraded Hero/Myth-track weapon or
+trinket beyond its normal ceiling. It turned out to be visible in the same
+upgrade-track groups used above: every raid-difficulty group (609/610/611/
+612) has a run of ranks with a real crest cost (Flags == 2) followed by a
+tail of Flags == 3, zero-cost ranks -- rank 6 of 9 is the crest ceiling
+(matching item 249277's real, live bonus_id 12806) and ranks 7-9 are the
+Voidcore-gated extension. See _group_rank_bonus_id(). The extension is only
+emitted for Heroic/Mythic sources (bonus_ids_voidcore_max), matching the
+documented "Hero or Myth track" restriction, even though the raw data
+technically carries the same Flags==3 tail for LFR/Normal too.
+
 Mythic+ dungeon loot is NOT included: the same walk was tried against all 8
 Season 1 dungeons and is demonstrably broken there rather than merely
 imprecise. It resolved 229 "valid" items for Skyreach alone (vs. 19-58 for
@@ -48,11 +60,6 @@ A handful of item names may render with mangled special characters (e.g.
 "Gaze of the All-Seer" came back as "Gaze of the Alnseer") -- this reproduces
 in wago.tools' own CSV export of ItemSparse, not in this script's parsing;
 spot-check any name that looks garbled against Wowhead/in-game.
-
-"Voidcore": no mechanic by this name was found anywhere in the DB2 tables,
-the ItemContext enum (186 values, checked in full), or Blizzard's Lua API
-constants during this research. bonus_ids_voidcore is left empty for every
-imported source pending clarification of what this refers to.
 
 Armor-type restriction is not populated (always null) -- that requires the
 Item/ItemSubClass tables, not fetched in this pass; class restriction (from
@@ -147,11 +154,12 @@ class BonusTreeResolver:
         for row in bonus_tree_nodes:
             self.nodes_by_parent.setdefault(int(row["ParentItemBonusTreeID"]), []).append(row)
 
-        self.group_entries: dict[int, list[tuple[int, int]]] = {}
+        # (SequenceValue, ItemBonusListID, Flags) per group, sorted by rank.
+        self.group_entries: dict[int, list[tuple[int, int, int]]] = {}
         for row in group_entries:
             group_id = int(row["ItemBonusListGroupID"])
             self.group_entries.setdefault(group_id, []).append(
-                (int(row["SequenceValue"]), int(row["ItemBonusListID"]))
+                (int(row["SequenceValue"]), int(row["ItemBonusListID"]), int(row["Flags"]))
             )
         for entries in self.group_entries.values():
             entries.sort()
@@ -159,10 +167,34 @@ class BonusTreeResolver:
     def resolve(
         self, item_id: int, context: int, rank: str, key_level: int | None = None
     ) -> list[int]:
+        """rank: "base" (as-dropped), "crest_max" (normal upgrade-track ceiling),
+        or "voidcore_max" (extended ceiling beyond crest_max -- see
+        _group_rank_bonus_id for how that extension is identified).
+        """
         tree_id = self.tree_by_item.get(item_id)
         if tree_id is None:
             return []
         return sorted(set(self._walk(tree_id, context, rank, key_level, set())))
+
+    @staticmethod
+    def _group_rank_bonus_id(entries: list[tuple[int, int, int]], rank: str) -> int:
+        """Pick a rank's bonus_id from a group's (SequenceValue, ID, Flags) ladder.
+
+        Every ladder inspected (across all 4 raid-difficulty upgrade groups)
+        has the same shape: an initial run of ranks with a real crest cost
+        (Flags == 2) followed by a tail of Flags == 3, zero-cost ranks -- the
+        latter matches the "Ascendant Voidcore" currency-gated extension
+        beyond the normal upgrade-track ceiling (see CLAUDE.md). crest_max is
+        the last Flags != 3 rank; voidcore_max is the very last rank,
+        whatever tier it's in.
+        """
+        if rank == "base":
+            return entries[0][1]
+        if rank == "voidcore_max":
+            return entries[-1][1]
+        # crest_max: last rank that isn't in the voidcore-only tail.
+        crest_entries = [e for e in entries if e[2] != 3]
+        return (crest_entries or entries)[-1][1]
 
     def _walk(self, tree_id, context, rank, key_level, seen) -> list[int]:
         if tree_id in seen:
@@ -192,7 +224,7 @@ class BonusTreeResolver:
             if child_group:
                 entries = self.group_entries.get(child_group)
                 if entries:
-                    ids.append(entries[0][1] if rank == "base" else entries[-1][1])
+                    ids.append(self._group_rank_bonus_id(entries, rank))
 
         return ids
 
@@ -227,16 +259,25 @@ def build_raid_items(encounter_items, item_index, resolver, boss_names) -> list[
         sources = []
         for label, context in RAID_CONTEXTS.items():
             base = resolver.resolve(item_id, context, "base")
-            maxed = resolver.resolve(item_id, context, "max")
-            if not base and not maxed:
+            crest_max = resolver.resolve(item_id, context, "crest_max")
+            if not base and not crest_max:
                 continue
-            sources.append({
+            source = {
                 "category": "raid",
                 "label": f"{boss_name} ({label})",
                 "difficulty": label,
                 "bonus_ids_base": base,
-                "bonus_ids_max": maxed or base,
-            })
+                "bonus_ids_max": crest_max or base,
+            }
+            # Ascendant Voidcore only extends fully-upgraded Hero/Myth-track
+            # gear (see CLAUDE.md) -- restrict the extended tier to Heroic/
+            # Mythic even though the raw data technically carries it for
+            # LFR/Normal too, since that contradicts the documented scope.
+            if label in ("Heroic", "Mythic"):
+                voidcore_max = resolver.resolve(item_id, context, "voidcore_max")
+                if voidcore_max and voidcore_max != source["bonus_ids_max"]:
+                    source["bonus_ids_voidcore_max"] = voidcore_max
+            sources.append(source)
         if not sources:
             continue
 
@@ -347,10 +388,10 @@ def main() -> None:
             "resolved from real ItemBonusTree data, validated against a known example (item "
             "249277 in tests/fixtures/sample_export.simc, bonus_id=12806/13335 reproduced "
             "exactly). armor_type is not populated (always null) -- classes (from "
-            "ItemSparse.AllowableClass) does the eligibility filtering instead. voidcore bonus "
-            "ids are empty pending clarification of what 'Voidcore' refers to -- no such "
-            "mechanic was found anywhere in the data researched (186-entry ItemContext enum "
-            "checked in full). A handful of item names may have mangled special characters "
+            "ItemSparse.AllowableClass) does the eligibility filtering instead. Heroic/Mythic "
+            "sources carry bonus_ids_voidcore_max, the Ascendant Voidcore-gated tier beyond the "
+            "normal crest ceiling (bonus_ids_max) -- see the script's docstring for how that was "
+            "identified. A handful of item names may have mangled special characters "
             "(upstream wago.tools CSV export issue, e.g. 'Gaze of the All-Seer' came back as "
             "'Gaze of the Alnseer') -- spot-check anything that looks garbled."
         ),

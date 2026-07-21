@@ -94,7 +94,7 @@ variant kept per `(item_index, source_index)`), but the candidate list comes fro
 instead of parsing the player's own export, since "everything that can drop" isn't present in a
 `/simc` export at all. Each catalog item lists `armor_type`/`classes` restrictions and one or more
 `sources` (`category`, display `label`, `bonus_ids_base`, `bonus_ids_max`, optional
-`bonus_ids_voidcore`). `detect_class()` reads the class token off the export's `class="Name"` line
+`bonus_ids_voidcore_max`). `detect_class()` reads the class token off the export's `class="Name"` line
 (e.g. `warrior=`) and `eligible_items()` filters the catalog to what that class can equip — if the
 class can't be detected, filtering is skipped rather than silently dropping every candidate.
 `categories` narrows a run to specific source types instead of always simming the whole catalog.
@@ -109,13 +109,25 @@ bar-table layout.
 even with the item's own real bonus_id alongside it (reproduced with a hand-built minimal profile,
 not just the catalog). Every source instead carries the actual `bonus_id` combination Blizzard's
 client would apply for that difficulty/rank — the same mechanism a real `/simc` export uses — so
-simc resolves stats/ilvl itself. `resolve_bonus_ids()` picks `bonus_ids_max` (assume full
-crest/catalyst upgrade) unless `use_max_upgrade=False`, plus `bonus_ids_voidcore` when
-`voidcore=True` (currently always empty — no mechanic by that name was found anywhere in the
-~186-entry `Enum.ItemCreationContext` list or any DB2 table researched; needs clarification of what
-it refers to before it can be populated). **Weapon slots (`main_hand`/`off_hand`) are excluded from
+simc resolves stats/ilvl itself. `resolve_bonus_ids()` picks `bonus_ids_max` (assume full crest
+upgrade) unless `use_max_upgrade=False`, and swaps in `bonus_ids_voidcore_max` instead when
+`voidcore=True` and the source has one. **Weapon slots (`main_hand`/`off_hand`) are excluded from
 the catalog entirely** — the segfault reproduces regardless of override mechanism, so it's a simc
 bug in this specific nightly build, not something fixable app-side; revisit once upstream fixes it.
+
+**"Voidcore" is the Ascendant Voidcore / Voidforge system** (patch 12.0.5): a currency that pushes
+an already fully-upgraded Hero/Myth-track weapon or trinket beyond its normal crest ceiling (armor
+is excluded from the mechanic entirely). It isn't a separate branch in the bonus tree — a trinket
+and a weapon from the same source turned out to share the *exact same* tree structure, so it had to
+be hiding inside the upgrade-track groups already being walked. It was found there: every
+raid-difficulty group (`609`/`610`/`611`/`612` = LFR/Normal/Heroic/Mythic) has a run of ranks with a
+real crest cost (`Flags == 2`) followed by a tail of `Flags == 3`, zero-cost ranks — rank 6 of 9 is
+the crest ceiling (this is the rank that produced the validated example's real bonus_id, 12806) and
+ranks 7-9 are the Voidcore-gated extension. `_group_rank_bonus_id()` in the build script picks
+between `"base"`/`"crest_max"`/`"voidcore_max"` using this `Flags` discontinuity, and
+`build_raid_items()` only emits `bonus_ids_voidcore_max` for Heroic/Mythic sources, matching the
+documented "Hero or Myth track" restriction — even though the raw data technically carries the same
+tail for LFR/Normal too, using it there would contradict the documented scope.
 
 **`scripts/build_droptimizer_catalog.py` generates the real catalog from wago.tools DB2 data**
 (`scripts/wago_client.py` fetches+caches CSV tables from `https://wago.tools/db2/{table}/csv`, no

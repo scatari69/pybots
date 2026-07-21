@@ -21,11 +21,14 @@ same mechanism real /simc exports use, so simc resolves the item's stats and
 effective level itself, exactly as it would for equipped gear.
 
   - "use_max_upgrade" picks a source's bonus_ids_max (assume fully upgraded
-    via crests/catalyst within that upgrade track) instead of
-    bonus_ids_base (item as it drops, unupgraded).
-  - "voidcore" adds a source's bonus_ids_voidcore on top, where the source
-    defines any -- no source currently does; no mechanic by that name was
-    found in the data researched so far (see the build script's docstring).
+    via crests within that upgrade track) instead of bonus_ids_base (item as
+    it drops, unupgraded).
+  - "voidcore" additionally swaps in bonus_ids_voidcore_max where a source
+    has one -- the Ascendant Voidcore currency lets a fully-upgraded Hero/
+    Myth-track weapon or trinket go beyond the normal crest ceiling (see the
+    build script's docstring for how that extra tier was identified in the
+    upgrade-track data). Sources without this tier (non-Heroic/Mythic, or any
+    source predating this catalog's Voidcore support) just keep bonus_ids_max.
   - "categories" restricts which source categories (currently just "raid")
     are included, so a run can be scoped down instead of always simming the
     entire catalog.
@@ -104,10 +107,11 @@ def eligible_items(catalog: dict, wow_class: str | None) -> list[dict]:
 
 
 def resolve_bonus_ids(source: dict, use_max_upgrade: bool, voidcore: bool) -> list[int]:
-    bonus_ids = list(source["bonus_ids_max"] if use_max_upgrade else source["bonus_ids_base"])
-    if voidcore:
-        bonus_ids += source.get("bonus_ids_voidcore", [])
-    return bonus_ids
+    if not use_max_upgrade:
+        return list(source["bonus_ids_base"])
+    if voidcore and "bonus_ids_voidcore_max" in source:
+        return list(source["bonus_ids_voidcore_max"])
+    return list(source["bonus_ids_max"])
 
 
 def build_input(

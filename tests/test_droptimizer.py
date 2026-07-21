@@ -66,14 +66,15 @@ def test_eligible_items_includes_everything_when_class_unknown():
 
 
 def test_resolve_bonus_ids_base_vs_max_and_voidcore():
-    source = {"bonus_ids_base": [510], "bonus_ids_max": [516], "bonus_ids_voidcore": [6]}
+    source = {"bonus_ids_base": [510], "bonus_ids_max": [516], "bonus_ids_voidcore_max": [522]}
     assert resolve_bonus_ids(source, use_max_upgrade=False, voidcore=False) == [510]
     assert resolve_bonus_ids(source, use_max_upgrade=True, voidcore=False) == [516]
-    assert resolve_bonus_ids(source, use_max_upgrade=True, voidcore=True) == [516, 6]
-    assert resolve_bonus_ids(source, use_max_upgrade=False, voidcore=True) == [510, 6]
+    assert resolve_bonus_ids(source, use_max_upgrade=True, voidcore=True) == [522]
+    # voidcore has no effect without use_max_upgrade -- it only extends the ceiling.
+    assert resolve_bonus_ids(source, use_max_upgrade=False, voidcore=True) == [510]
 
 
-def test_resolve_bonus_ids_voidcore_defaults_to_empty():
+def test_resolve_bonus_ids_voidcore_falls_back_to_max_when_absent():
     source = {"bonus_ids_base": [510], "bonus_ids_max": [516]}
     assert resolve_bonus_ids(source, use_max_upgrade=True, voidcore=True) == [516]
 
@@ -116,12 +117,13 @@ def test_build_input_respects_use_max_upgrade_false():
     assert "bonus_id=516" not in combined
 
 
-def test_build_input_voidcore_adds_bonus_id():
+def test_build_input_voidcore_swaps_in_extended_ceiling():
     catalog = load_catalog(CATALOG_PATH)
     items = [item for item in catalog["items"] if item["name"] == "Test Plate Chest"]
     combined, _ = build_input(EXPORT, items, use_max_upgrade=True, voidcore=True)
 
-    assert "bonus_id=516/6" in combined
+    assert "bonus_id=522" in combined
+    assert "bonus_id=516" not in combined
 
 
 def test_build_input_filters_by_category():
