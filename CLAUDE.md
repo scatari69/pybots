@@ -139,20 +139,32 @@ node whose `ItemContext` is `0` (unconditional) or matches the target context (`
 ItemCreationContext`: `RaidLFR=4/RaidNormal=3/RaidHeroic=5/RaidMythic=6`) — a node yields a bonus_id
 directly (`ChildItemBonusListID`), or via an upgrade-track group (`ChildItemBonusListGroupID` →
 `ItemBonusListGroupEntry` rows sorted by `SequenceValue`; first = base/undropped rank, last = fully
-upgraded), or recurses into a nested subtree (`ChildItemBonusTreeID`). **This is validated for
-raid difficulties only.** The same walk was tried against Mythic+ dungeons and is not just
-imprecise there but wrong: no item in any Season 1 dungeon's loot pool has a tree node with a real
-`MinMythicPlusLevel`/`MaxMythicPlusLevel` range, meaning key-level ilvl scaling isn't reachable
-this way at all — whatever mechanism actually drives it (likely `ContentTuning`/`ItemLevelSelector`
-resolved server-side) wasn't found. `build_dungeon_items()` exists in the script but main() doesn't
-call it; picking this up means finding that mechanism first, not just cleaning up the existing code.
-Season scope (4 raids: The Dreamrift, March on Quel'Danas, Sporefall, The Voidspire) is hardcoded
-as constants at the top of the script — update those each season along with `--build`. Great
-Vault, world bosses, and delves aren't covered yet either. A handful of item names carry mangled
-special characters (e.g. "Gaze of the All-Seer" → "Gaze of the Alnseer") — an upstream issue in
-wago.tools' own CSV export of `ItemSparse`, reproduces outside this script; spot-check anything
-that looks garbled. `armor_type` is not populated from real data (always `null` in the generated
-catalog) — `classes` (from `ItemSparse.AllowableClass`) does the real eligibility filtering instead.
+upgraded), or recurses into a nested subtree (`ChildItemBonusTreeID`).
+
+**Mythic+ dungeons resolve through the same walk**, using `ItemContext` `16` (`ChallengeMode_1`,
+legacy Timewalking Challenge Mode terminology reused here — end-of-run reward) and `35`
+(`ChallengeModeJackpot` — a second, higher-floor channel; "pick your best key of the week" fits the
+Great Vault). A first attempt at this checked `DungeonMythic` (23) instead, which only ever yields
+a flat non-scaling flag, and separately had an off-by-one treating a node's `MaxMythicPlusLevel ==
+0` as "cap at 0" rather than "no cap" — between the two bugs, every open-ended "N and up" bracket
+under the wrong context looked like it didn't exist. Both were found by comparing a *new* Season 1
+dungeon's tree (Windrunner Spire) against the raid tree shape rather than a returning one — which
+turned out to matter: `discover_mplus_brackets()` finds real key-level brackets (e.g. "0-5"/"6 and
+up") pointing at the *same* upgrade-track groups (`609`-`612`) raid difficulties use for the 4 new
+Season 1 dungeons, but **the 4 returning dungeons' items (Skyreach, Seat of the Triumvirate,
+Algeth'ar Academy, Pit of Saron) have zero such brackets in their trees at all** — whatever
+mechanism scales their M+ rewards, it isn't carried on the item the way it is for new dungeons, and
+wasn't found in this pass. `build_dungeon_items()` covers the 4 new dungeons only; the 4 returning
+ones are a distinct, still-open gap, not just an oversight.
+
+Season scope (4 raids: The Dreamrift, March on Quel'Danas, Sporefall, The Voidspire; 8 dungeons) is
+hardcoded as constants at the top of the script — update those each season along with `--build`.
+Great Vault raid rewards, world bosses, and delves aren't covered yet. A handful of item names
+carry mangled special characters (e.g. "Gaze of the All-Seer" → "Gaze of the Alnseer") — an
+upstream issue in wago.tools' own CSV export of `ItemSparse`, reproduces outside this script;
+spot-check anything that looks garbled. `armor_type` is not populated from real data (always
+`null` in the generated catalog) — `classes` (from `ItemSparse.AllowableClass`) does the real
+eligibility filtering instead.
 
 **Why the binary comes from Docker Hub, not compiled here.** The `Dockerfile` copies the compiled
 `simc` binary and bundled `profiles/` out of `simulationcraftorg/simc:latest` in a multi-stage

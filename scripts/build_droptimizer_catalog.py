@@ -44,17 +44,29 @@ emitted for Heroic/Mythic sources (bonus_ids_voidcore_max), matching the
 documented "Hero or Myth track" restriction, even though the raw data
 technically carries the same Flags==3 tail for LFR/Normal too.
 
-Mythic+ dungeon loot is NOT included: the same walk was tried against all 8
-Season 1 dungeons and is demonstrably broken there rather than merely
-imprecise. It resolved 229 "valid" items for Skyreach alone (vs. 19-58 for
-every other dungeon and 8-58 for every raid) -- a check for any tree node
-with a real MinMythicPlusLevel/MaxMythicPlusLevel range across every item in
-that pool came back with zero matches, meaning key-level ilvl scaling isn't
-reachable through an item's own bonus tree the way raid difficulty is.
-Whatever mechanism actually drives Mythic+ reward scaling in this build
-(likely something ContentTuning/ItemLevelSelector-based, resolved
-server-side rather than baked into static per-item tree data) was not found
-during this research. Left for a follow-up rather than shipping wrong data.
+Mythic+ dungeon loot IS included, resolved through the same walk -- an
+earlier version of this script gave up on it after finding zero tree nodes
+with a real MinMythicPlusLevel/MaxMythicPlusLevel range across an entire
+dungeon's loot pool. That check was looking at the wrong ItemContext:
+DungeonMythic (23) only ever yields a flat, non-scaling flag bonus. Key-level
+scaling instead lives under two other contexts -- found by comparing a new
+Season 1 dungeon's tree (Windrunner Spire) against a raid item's tree, which
+are otherwise near-identical in shape:
+
+  - ChallengeMode_1 (16) -- end-of-run reward. Its nodes carry real
+    Min/MaxMythicPlusLevel brackets (e.g. "0-5" -> one upgrade-track group,
+    "6 and up" -> the next), pointing at the *same* groups (609-612) raid
+    difficulties use.
+  - ChallengeModeJackpot (35) -- a second, higher-value channel with its own
+    bracket boundaries (e.g. "0-9" vs "10 and up"); "jackpot" (pick your best
+    key of the week) strongly suggests this is the Great Vault.
+
+A second bug compounded the first: the range check treated
+MaxMythicPlusLevel == 0 as "cap at 0" instead of "no cap" for open-ended
+"N and up" brackets, which would have hidden every top bracket even against
+the right context. discover_mplus_brackets() finds each item's actual
+bracket boundaries (no hardcoded key-level guesses) and resolve() -- with
+that range check fixed -- is called once per discovered bracket.
 
 A handful of item names may render with mangled special characters (e.g.
 "Gaze of the All-Seer" came back as "Gaze of the Alnseer") -- this reproduces
@@ -103,11 +115,19 @@ RAID_CONTEXTS = {
     "Heroic": 5,
     "Mythic": 6,
 }
+# These are NOT "DungeonMythic" (23) -- that context only ever yields a flat,
+# non-scaling flag bonus. Key-level scaling lives under the legacy "Challenge
+# Mode" context names instead (Timewalking Challenge Mode terminology,
+# reused here), found by comparing a new Season 1 dungeon's tree (Windrunner
+# Spire) against the raid tree shape: ChallengeMode_1 nodes carry real
+# MinMythicPlusLevel/MaxMythicPlusLevel ranges pointing at the same upgrade-
+# track groups (609-612) raids use, and ChallengeModeJackpot is a second,
+# higher-value channel with its own bracket boundaries -- almost certainly
+# the Great Vault ("jackpot" naming fits: pick your best key of the week).
 DUNGEON_CONTEXTS = {
-    "Heroic": 2,
-    "Mythic": 23,  # Mythic+ (key-level scaling handled via Min/MaxMythicPlusLevel)
+    "End of Run": 16,  # ChallengeMode_1
+    "Vault": 35,  # ChallengeModeJackpot
 }
-MPLUS_KEY_LEVEL_SAMPLES = [2, 7, 10]  # representative brackets, not exhaustive
 
 INVENTORY_TYPE_TO_SLOT = {
     1: "head",
@@ -176,6 +196,35 @@ class BonusTreeResolver:
             return []
         return sorted(set(self._walk(tree_id, context, rank, key_level, set())))
 
+    def discover_mplus_brackets(self, item_id: int, context: int) -> list[tuple[int, int | None]]:
+        """Distinct (min_level, max_level) brackets found for this context.
+
+        max_level is None for an open-ended "N and up" bracket (the raw data
+        represents that as MaxMythicPlusLevel == 0, which -- see _walk's
+        range check -- means "no cap", not "cap at 0").
+        """
+        tree_id = self.tree_by_item.get(item_id)
+        if tree_id is None:
+            return []
+        brackets: set[tuple[int, int | None]] = set()
+        self._collect_brackets(tree_id, context, brackets, set())
+        return sorted(brackets, key=lambda b: b[0])
+
+    def _collect_brackets(self, tree_id, context, brackets, seen):
+        if tree_id in seen:
+            return
+        seen.add(tree_id)
+        for node in self.nodes_by_parent.get(tree_id, []):
+            node_context = int(node["ItemContext"])
+            if node_context not in (0, context):
+                continue
+            child_tree = int(node["ChildItemBonusTreeID"])
+            if child_tree:
+                self._collect_brackets(child_tree, context, brackets, seen)
+            lo, hi = int(node["MinMythicPlusLevel"]), int(node["MaxMythicPlusLevel"])
+            if lo or hi:
+                brackets.add((lo, hi or None))
+
     @staticmethod
     def _group_rank_bonus_id(entries: list[tuple[int, int, int]], rank: str) -> int:
         """Pick a rank's bonus_id from a group's (SequenceValue, ID, Flags) ladder.
@@ -209,7 +258,12 @@ class BonusTreeResolver:
 
             if key_level is not None:
                 lo, hi = int(node["MinMythicPlusLevel"]), int(node["MaxMythicPlusLevel"])
-                if (lo or hi) and not (lo <= key_level <= hi):
+                # hi == 0 means "no cap" (an open-ended "N and up" bracket),
+                # not "cap at 0" -- a bug in an earlier version of this walk
+                # excluded every open-ended bracket, which combined with
+                # checking the wrong ItemContext entirely (see DUNGEON_CONTEXTS)
+                # is why Mythic+ scaling looked unreachable at first.
+                if (lo or hi) and not (lo <= key_level and (hi == 0 or key_level <= hi)):
                     continue
 
             child_tree = int(node["ChildItemBonusTreeID"])
@@ -308,19 +362,24 @@ def build_dungeon_items(
             continue
 
         sources = []
-        for key_level in MPLUS_KEY_LEVEL_SAMPLES:
-            context = DUNGEON_CONTEXTS["Mythic"]
-            base = resolver.resolve(item_id, context, "base", key_level=key_level)
-            maxed = resolver.resolve(item_id, context, "max", key_level=key_level)
-            if not base and not maxed:
-                continue
-            sources.append({
-                "category": "mythicplus",
-                "label": f"{dungeon_name} — {boss_name} (+{key_level})",
-                "difficulty": f"Mythic+{key_level}",
-                "bonus_ids_base": base,
-                "bonus_ids_max": maxed or base,
-            })
+        for channel, context in DUNGEON_CONTEXTS.items():
+            category = "vault" if channel == "Vault" else "mythicplus"
+            for lo, hi in resolver.discover_mplus_brackets(item_id, context):
+                # Probe with the bracket's own lower bound -- constant/flag
+                # nodes (no MinMythicPlusLevel/MaxMythicPlusLevel of their
+                # own) apply regardless of the exact probe value used.
+                base = resolver.resolve(item_id, context, "base", key_level=lo)
+                crest_max = resolver.resolve(item_id, context, "crest_max", key_level=lo)
+                if not base and not crest_max:
+                    continue
+                bracket = f"+{lo}" if hi is None else f"+{lo}-{hi}"
+                sources.append({
+                    "category": category,
+                    "label": f"{dungeon_name} — {boss_name} ({channel}, {bracket})",
+                    "difficulty": bracket,
+                    "bonus_ids_base": base,
+                    "bonus_ids_max": crest_max or base,
+                })
         if not sources:
             continue
 
@@ -372,28 +431,36 @@ def main() -> None:
         print(f"{instance_name}: {len(raid_items)} item(s)")
         items.extend(raid_items)
 
-    # Mythic+ dungeon loot is intentionally NOT imported yet -- build_dungeon_items()
-    # is kept below for whoever picks this up next, but see the module docstring:
-    # key-level ilvl scaling isn't reachable through this item-tree walk, and calling
-    # it produced demonstrably wrong data (229 "valid" items for Skyreach alone).
-    print("Skipping Mythic+ dungeons: key-level scaling resolver is broken, see docstring.")
+    for instance_id, instance_name in DUNGEON_INSTANCES.items():
+        encounter_ids = {
+            int(r["ID"]) for r in journal_encounter if int(r["JournalInstanceID"]) == instance_id
+        }
+        rows = [r for r in journal_encounter_item if int(r["JournalEncounterID"]) in encounter_ids]
+        dungeon_items = build_dungeon_items(
+            rows, item_index, resolver, boss_names_all, instance_name
+        )
+        print(f"{instance_name}: {len(dungeon_items)} item(s)")
+        items.extend(dungeon_items)
 
     catalog = {
         "_readme": (
             "Real data imported via scripts/build_droptimizer_catalog.py from wago.tools "
-            f"(build {build}), scoped to Season 1 raids: The Dreamrift, March on Quel'Danas, "
-            "Sporefall, The Voidspire. Mythic+ dungeons, Great Vault, world bosses and delves "
-            "are not covered yet (see the script's docstring for why dungeons specifically were "
-            "dropped after producing wrong data). Each source's bonus_ids_base/bonus_ids_max are "
-            "resolved from real ItemBonusTree data, validated against a known example (item "
-            "249277 in tests/fixtures/sample_export.simc, bonus_id=12806/13335 reproduced "
-            "exactly). armor_type is not populated (always null) -- classes (from "
-            "ItemSparse.AllowableClass) does the eligibility filtering instead. Heroic/Mythic "
+            f"(build {build}), scoped to Season 1: 4 raids (The Dreamrift, March on Quel'Danas, "
+            "Sporefall, The Voidspire) and their 8 Mythic+ dungeons, both end-of-run and Great "
+            "Vault rewards. World bosses and delves are not covered yet. Each source's "
+            "bonus_ids_base/bonus_ids_max are resolved from real ItemBonusTree data, validated "
+            "against a known example (item 249277 in tests/fixtures/sample_export.simc, "
+            "bonus_id=12806/13335 reproduced exactly). Mythic+ key-level scaling uses the same "
+            "resolver, walking ItemContext 16 (end-of-run) and 35 (vault) instead of the raid "
+            "difficulty contexts -- see the script's docstring for how the earlier broken attempt "
+            "(which checked the wrong context and had an off-by-one on open-ended brackets) was "
+            "diagnosed and fixed. armor_type is not populated (always null) -- classes (from "
+            "ItemSparse.AllowableClass) does the eligibility filtering instead. Heroic/Mythic raid "
             "sources carry bonus_ids_voidcore_max, the Ascendant Voidcore-gated tier beyond the "
-            "normal crest ceiling (bonus_ids_max) -- see the script's docstring for how that was "
-            "identified. A handful of item names may have mangled special characters "
-            "(upstream wago.tools CSV export issue, e.g. 'Gaze of the All-Seer' came back as "
-            "'Gaze of the Alnseer') -- spot-check anything that looks garbled."
+            "normal crest ceiling (bonus_ids_max); Mythic+ sources don't have this yet. A handful "
+            "of item names may have mangled special characters (upstream wago.tools CSV export "
+            "issue, e.g. 'Gaze of the All-Seer' came back as 'Gaze of the Alnseer') -- spot-check "
+            "anything that looks garbled."
         ),
         "season": "Season 1",
         "items": items,
